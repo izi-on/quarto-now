@@ -1,10 +1,19 @@
 import { z } from "zod";
 
-const allowedInputTypes = z.union([
+export const allowedInputTypeSchema = z.union([
   z.literal("string"),
   z.literal("integer"),
   z.literal("boolean"),
+  z.undefined(),
 ]);
+
+export type allowedInputTypeSchema = z.infer<typeof allowedInputTypeSchema>;
+
+export const inputSettingsSchema = z.record(
+  z.union([z.boolean(), z.string(), z.number()]),
+);
+
+export type inputSettings = z.infer<typeof inputSettingsSchema>;
 
 export const gameUserInputSchema = z.object({
   id: z.string(),
@@ -12,7 +21,7 @@ export const gameUserInputSchema = z.object({
   requestedInputs: z.array(
     z.object({
       label: z.string(),
-      input: allowedInputTypes,
+      input: allowedInputTypeSchema,
     }),
   ),
 });

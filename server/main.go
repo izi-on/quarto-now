@@ -39,6 +39,6 @@ func websocketHandler(c *gin.Context) {
 
 func main() {
 	r := gin.Default()
-	r.GET("/ws", websocketHandler)
-	r.Run(":8080")
+	r.GET("/abdc", websocketHandler)
+	r.Run(":9876")
 }

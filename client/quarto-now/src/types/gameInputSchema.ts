@@ -1,29 +1,41 @@
 import { z } from "zod";
 
-export const allowedInputTypeSchema = z.union([
+export const AllowedLiteralTypeInputSchema = z.union([
   z.literal("string"),
   z.literal("integer"),
   z.literal("boolean"),
   z.undefined(),
 ]);
 
-export type allowedInputTypeSchema = z.infer<typeof allowedInputTypeSchema>;
+export type AllowedLiteralTypeInput = z.infer<
+  typeof AllowedLiteralTypeInputSchema
+>;
 
-export const inputSettingsSchema = z.record(
+export const AllowedTypeInputSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+]);
+
+export type AllowedTypeInput = z.infer<typeof AllowedTypeInputSchema>;
+
+export const InputSettingsSchema = z.record(
   z.union([z.boolean(), z.string(), z.number()]),
 );
 
-export type inputSettings = z.infer<typeof inputSettingsSchema>;
+export type InputSettings = z.infer<typeof InputSettingsSchema>;
 
-export const gameUserInputSchema = z.object({
+export const GameUserInputSchema = z.object({
   id: z.string(),
   displayName: z.string(),
   requestedInputs: z.array(
     z.object({
+      name: z.string(),
       label: z.string(),
-      input: allowedInputTypeSchema,
+      input: AllowedLiteralTypeInputSchema, //this needs to be the same tpye as defaultValue
+      defaultValue: AllowedTypeInputSchema, //this needs to be the same type as input
     }),
   ),
 });
 
-export type gameUserInput = z.infer<typeof gameUserInputSchema>;
+export type GameUserInput = z.infer<typeof GameUserInputSchema>;

@@ -1,0 +1,3 @@
+export const LOBBY_CREATION_SERVICE_URL = import.meta.env
+  .VITE_LOBBY_CREATION_SERVICE_URL;
+export const LOBBY_WEBSOCKET_BASE = import.meta.env.VITE_LOBBY_WEBSOCKET_BASE;

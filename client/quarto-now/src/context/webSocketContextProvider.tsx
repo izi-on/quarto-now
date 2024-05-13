@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from "react";
+import { createContext, useState } from "react";
 
 export const WebsocketContext = createContext<{
   websocket: WebSocket | undefined;
@@ -14,14 +14,6 @@ export const WebSocketContextProvider = ({
   children: React.ReactNode;
 }) => {
   const [websocket, setWebsocket] = useState<WebSocket | undefined>();
-
-  useEffect(() => {
-    return () => {
-      if (websocket !== undefined && [0, 1].includes(websocket.readyState)) {
-        websocket.close();
-      }
-    };
-  });
 
   return (
     <WebsocketContext.Provider

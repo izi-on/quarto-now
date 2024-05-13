@@ -12,6 +12,7 @@ export const GamePageUrlView = () => {
 
   useEffect(() => {
     console.log(LOBBY_WEBSOCKET_BASE);
+    console.log("ESTABLISHING WEBSOCKET CONNECTION");
     const conn = new WebSocket(`${LOBBY_WEBSOCKET_BASE}/${lobbyId}`);
     setWebsocket(conn);
 
@@ -31,6 +32,11 @@ export const GamePageUrlView = () => {
     conn.onclose = () => {
       console.log("websocket disconnected");
       setWebsocket(undefined);
+    };
+
+    return () => {
+      console.log("closing websocket");
+      conn.close();
     };
   }, []);
 

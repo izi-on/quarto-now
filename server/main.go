@@ -1,44 +1,24 @@
 package main
 
 import (
-	"net/http"
+	"os"
 
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
+	"github.com/izi-on/quarto-now/internal/websocket"
+	"github.com/izi-on/quarto-now/router"
+	"github.com/izi-on/quarto-now/utils"
 )
 
-var wsupgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	// CheckOrigin can be used to disable CORS checks.
-	// In real applications, customize this to allow only valid origins.
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
-
-func websocketHandler(c *gin.Context) {
-	conn, err := wsupgrader.Upgrade(c.Writer, c.Request, nil)
-	if err != nil {
-		http.Error(c.Writer, "Could not open websocket connection", http.StatusBadRequest)
-		return
-	}
-
-	defer conn.Close()
-	for {
-		messageType, p, err := conn.ReadMessage()
-		if err != nil {
-			return // Ends the loop if we cannot read messages (e.g., connection closed)
-		}
-		// Echo the message back to the client
-		if err = conn.WriteMessage(messageType, p); err != nil {
-			return // Ends the loop if we cannot write messages
-		}
-	}
-}
-
 func main() {
-	r := gin.Default()
-	r.GET("/abdc", websocketHandler)
-	r.Run(":9876")
+	// load env variables
+	utils.LoadEnvVars()
+
+	// create websocket
+	wsService := websocket.NewWSService()
+	wsHandler := websocket.WsHandler{Service: wsService}
+
+	// create router
+	addr := os.Getenv("BASE_URL_WEBSOCKET")
+	router := router.Router{}
+	router.InitRouter(wsHandler.WebsocketHandler)
+	router.StartRouter(addr)
 }

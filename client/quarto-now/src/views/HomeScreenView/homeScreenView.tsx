@@ -29,6 +29,7 @@ import {
 import { Toaster } from "@/components/ui/toaster";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
+import { useCallback } from "react";
 
 export const HomeScreenView = () => {
   const form = useForm<InputSettings>({
@@ -37,22 +38,25 @@ export const HomeScreenView = () => {
   });
   const toast = useToast();
   const navigate = useNavigate();
-  const onFormSubmit = (game: GameUserInput, data: InputSettings) => {
-    console.log(game);
-    console.log(data);
-    // generateLobbyWithId()
-    //   .then((lobbyId: string) => {
-    //     navigate("/game-page-url/" + lobbyId);
-    //   })
-    //   .catch((err: Error) => {
-    //     toast.toast({
-    //       variant: "destructive",
-    //       title: "Error while creating the lobby",
-    //       description: err.message,
-    //     });
-    //   });
-    navigate("/game-page-url/" + "abdc");
-  };
+  const onFormSubmit = useCallback(
+    (game: GameUserInput, data: InputSettings) => {
+      console.log(game);
+      console.log(data);
+      // generateLobbyWithId()
+      //   .then((lobbyId: string) => {
+      //     navigate("/game-page-url/" + lobbyId);
+      //   })
+      //   .catch((err: Error) => {
+      //     toast.toast({
+      //       variant: "destructive",
+      //       title: "Error while creating the lobby",
+      //       description: err.message,
+      //     });
+      //   });
+      navigate("/game-page-url/" + "abdc");
+    },
+    [],
+  );
   return (
     <div className="w-full">
       <div className="container mx-auto">

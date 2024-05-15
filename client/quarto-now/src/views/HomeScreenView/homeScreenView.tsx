@@ -1,5 +1,5 @@
 import { GAMES } from "@/assets/gameInputDefinitions";
-import GameGridBlock from "@/components/game-grid-block/game-grid-block";
+import GameGridBlock from "@/components/game-grid-block/GameGridBlock";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -36,7 +36,7 @@ export const HomeScreenView = () => {
     resolver: zodResolver(InputSettingsSchema),
     defaultValues: {},
   });
-  const toast = useToast();
+  // const toast = useToast();
   const navigate = useNavigate();
   const onFormSubmit = useCallback(
     (game: GameUserInput, data: InputSettings) => {

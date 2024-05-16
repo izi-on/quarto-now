@@ -1,2 +1,17 @@
-run:
-  go run main.go
+export BASE_URL:="localhost"
+export WEBSOCKET_PORT:="9876"
+export REDIS_PORT:="6379"
+export POSTGRES_PASSWORD:="secretpassword"
+export POSTGRES_PORT:="5432"
+
+run-redis:
+  docker run --name my-redis -d redis -p $REDIS_PORT:$REDIS_PORT 
+
+run-postgres:
+  docker run --name my-postgres -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD -d -p $POSTGRES_PORT:$POSTGRES_PORT postgres; \
+  sleep 3; \
+  cat scripts/init.sql | docker exec -i my-postgres psql -U postgres
+
+run: run-redis run-postgres
+  go run services/lobby_service/main.go
+

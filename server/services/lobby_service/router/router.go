@@ -1,8 +1,6 @@
 package router
 
 import (
-	"os"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,7 +10,7 @@ type Router struct {
 
 func (router *Router) InitRouter(wsHandler gin.HandlerFunc) {
 	router.r = gin.Default()
-	router.r.GET(os.Getenv("LOBBY_ID"), wsHandler)
+	router.r.GET("lobby-service", wsHandler)
 }
 
 func (router *Router) StartRouter(addr string) {

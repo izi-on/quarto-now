@@ -1,23 +1,48 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"os"
 
+	"github.com/izi-on/quarto-now/internal/db"
 	"github.com/izi-on/quarto-now/internal/hub"
+	"github.com/izi-on/quarto-now/internal/pubsub"
 	"github.com/izi-on/quarto-now/router"
-	"github.com/izi-on/quarto-now/utils"
+	_ "github.com/lib/pq"
 )
 
 func main() {
-	// load env variables
-	utils.LoadEnvVars()
+	// create new db service
+	connStr := fmt.Sprintf("user=%s dbname=%s sslmode=disable password=%s", "postgres", "quarto", os.Getenv("POSTGRES_PASSWORD"))
+	dbConn, err := db.Connect(connStr)
+	if err != nil {
+		panic("Could not connect to postgres db")
+	}
+	dbService := db.NewService(dbConn)
+
+	// create pubsub instance
+	redisAddr := fmt.Sprintf("%s:%s", os.Getenv("BASE_URL"), os.Getenv("REDIS_PORT"))
+	pubsub, err := pubsub.NewPubsub(redisAddr)
+	if err != nil {
+		panic("Could not create pubsub instance")
+	}
 
 	// create new websocket hub
-	hub := hub.NewHub()
+	hub, err := hub.NewHub(*pubsub, dbService)
+	if err != nil {
+		panic("Could not create the websocket hub")
+	}
+
+	// run the hub in a separate go routine
+	go hub.Run(context.Background())
 
 	// create router
-	addr := os.Getenv("BASE_URL_WEBSOCKET")
+	addr := os.Getenv("BASE_URL")
+	port := os.Getenv("WEBSOCKET_PORT")
+	fullAddr := fmt.Sprintf("%s:%s", addr, port)
+	fmt.Println("THE FULL ADDRESS IS", fullAddr)
 	router := router.Router{}
 	router.InitRouter(hub.HandleConnections)
-	router.StartRouter(addr)
+	router.StartRouter(fullAddr)
 }

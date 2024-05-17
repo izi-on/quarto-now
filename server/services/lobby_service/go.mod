@@ -4,15 +4,17 @@ go 1.22.0
 
 require (
 	github.com/gin-gonic/gin v1.10.0
+	github.com/go-redis/redis v6.15.9+incompatible
 	github.com/joho/godotenv v1.5.1
 )
 
 require (
-	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
-	github.com/go-redis/redis/v8 v8.11.5 // indirect
-	github.com/lib/pq v1.10.9 // indirect
+	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/onsi/ginkgo v1.16.5 // indirect
+	github.com/onsi/gomega v1.33.1 // indirect
 )
+
+require github.com/lib/pq v1.10.9 // direct
 
 require (
 	github.com/bytedance/sonic v1.11.6 // indirect

@@ -3,11 +3,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"os"
 )
 
-func Connect() (*sql.DB, error) {
-	connStr := fmt.Sprintf("user=%s dbname=%s sslmode=disable password=%s", "postgres", "quarto", os.Getenv("POSTGRES_PASSWORD"))
+func Connect(connStr string) (*sql.DB, error) {
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		fmt.Println(err)

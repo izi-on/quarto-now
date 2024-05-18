@@ -1,17 +1,42 @@
 export BASE_URL:="localhost"
-export WEBSOCKET_PORT:="9876"
-export REDIS_PORT:="6379"
 export POSTGRES_PASSWORD:="secretpassword"
 export POSTGRES_PORT:="5432"
+export REDIS_PORT:="6379"
+export MONGODB_PORT:="27017"
+export LOBBY_SERVICE_PORT:="9876"
+export GAME_SERVICE_PORT:="8765"
 
-run-redis:
-  docker run --name my-redis -d redis -p $REDIS_PORT:$REDIS_PORT 
+env := "BASE_URL=$BASE_URL POSTGRES_PASSWORD=$POSTGRES_PASSWORD POSTGRES_PORT=$POSTGRES_PORT \
+REDIS_PORT=$REDIS_PORT MONGODB_PORT=$MONGODB_PORT GAME_SERVICE_PORT=$GAME_SERVICE_PORT LOBBY_SERVICE_PORT=$LOBBY_SERVICE_PORT"
+
+stop-docker:
+  docker rm -f my-redis;\
+  docker rm -f my-postgres;\
+  docker rm -f my-mongo
 
 run-postgres:
   docker run --name my-postgres -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD -d -p $POSTGRES_PORT:$POSTGRES_PORT postgres; \
   sleep 3; \
   cat scripts/init.sql | docker exec -i my-postgres psql -U postgres
 
-run: run-redis run-postgres
-  go run services/lobby_service/main.go
+run-redis:
+  docker run --name my-redis -d -p $REDIS_PORT:$REDIS_PORT redis
 
+run-mongo:
+  docker run -d -p $MONGODB_PORT:$MONGODB_PORT --name=mongo-example mongo:latest
+
+run-lobby-service:
+  cd services/lobby_service; \
+  {{env}} \
+  go run main.go 
+
+run-game-service:
+  cd services/game_service; \
+  {{env}} \
+  go run main.go
+
+run: stop-docker run-mongo run-postgres run-redis 
+    trap 'kill $(jobs -p)' EXIT; \
+    just run-lobby-service & \
+    just run-game-service & \
+    wait; \

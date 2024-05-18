@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/izi-on/quarto-now/internal/db"
-	"github.com/izi-on/quarto-now/internal/hub"
-	"github.com/izi-on/quarto-now/internal/pubsub"
-	"github.com/izi-on/quarto-now/router"
+	"github.com/izi-on/quarto-now/server/services/lobby_service/internal/db"
+	"github.com/izi-on/quarto-now/server/services/lobby_service/internal/hub"
+	"github.com/izi-on/quarto-now/server/services/lobby_service/internal/pubsub"
+	"github.com/izi-on/quarto-now/server/services/lobby_service/router"
 	_ "github.com/lib/pq"
 )
 
 func main() {
 	// create new db service
+	// TODO: use ssl
 	connStr := fmt.Sprintf("user=%s dbname=%s sslmode=disable password=%s", "postgres", "quarto", os.Getenv("POSTGRES_PASSWORD"))
 	dbConn, err := db.Connect(connStr)
 	if err != nil {
@@ -39,7 +40,7 @@ func main() {
 
 	// create router
 	addr := os.Getenv("BASE_URL")
-	port := os.Getenv("WEBSOCKET_PORT")
+	port := os.Getenv("LOBBY_SERVICE_PORT")
 	fullAddr := fmt.Sprintf("%s:%s", addr, port)
 	fmt.Println("THE FULL ADDRESS IS", fullAddr)
 	router := router.Router{}

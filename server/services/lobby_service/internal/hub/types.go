@@ -2,8 +2,8 @@ package hub
 
 import (
 	"github.com/gorilla/websocket"
-	"github.com/izi-on/quarto-now/internal/db"
-	"github.com/izi-on/quarto-now/internal/pubsub"
+	"github.com/izi-on/quarto-now/server/services/lobby_service/internal/db"
+	"github.com/izi-on/quarto-now/server/services/lobby_service/internal/pubsub"
 )
 
 type Client struct {

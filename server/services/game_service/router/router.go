@@ -11,7 +11,7 @@ func InitRouter(handlers ...Handler) *Router {
 	for _, handler := range handlers {
 		switch handler.EndpointType {
 		case "GET":
-			router.GET(handler.EndpointType, handler.Fn)
+			router.GET(handler.EndpointPath, handler.Fn)
 		case "POST":
 			router.POST(handler.EndpointPath, handler.Fn)
 		}

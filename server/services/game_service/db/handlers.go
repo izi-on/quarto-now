@@ -16,6 +16,7 @@ func (s *Service) HandleRoomCreation(c *gin.Context) {
 	roomId, err := s.CreateRoomAndGetID(request.GameID, request.Name, request.HTMLCode)
 	if err != nil {
 		fmt.Println(err)
+		c.String(http.StatusInternalServerError, fmt.Sprintf("Could not create the room: %s", err))
 	}
 	response := GameCreationResponse{RoomID: roomId}
 	c.JSON(http.StatusOK, response)
@@ -25,7 +26,8 @@ func (s *Service) HandleGetCode(c *gin.Context) {
 	roomId := c.Query("room-id")
 	htmlCode, err := s.GetHTMLCode(roomId)
 	if err != nil {
-		fmt.Printf("Could not get the html code for the given request: %s", err)
+		fmt.Println(err)
+		c.String(http.StatusInternalServerError, fmt.Sprintf("Could not get the html code for the given request: %s", err))
 	}
 
 	// stream resposne back to client
@@ -45,6 +47,11 @@ func (s *Service) GetHandlers() []router.Handler {
 			Fn:           s.HandleRoomCreation,
 			EndpointType: "POST",
 			EndpointPath: "/create-room",
+		},
+		{
+			Fn:           s.HandleGetCode,
+			EndpointType: "GET",
+			EndpointPath: "/get-game-html",
 		},
 	}
 	return handlers

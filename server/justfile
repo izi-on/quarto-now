@@ -23,7 +23,7 @@ run-redis:
   docker run --name my-redis -d -p $REDIS_PORT:$REDIS_PORT redis
 
 run-mongo:
-  docker run -d -p $MONGODB_PORT:$MONGODB_PORT --name=mongo-example mongo:latest
+  docker run -d -p $MONGODB_PORT:$MONGODB_PORT --name=my-mongo mongo:latest
 
 run-lobby-service:
   cd services/lobby_service; \

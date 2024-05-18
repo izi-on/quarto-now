@@ -79,6 +79,7 @@ func (s *Service) CreateRoomAndGetID(gameId string, name string, htmlCode string
 	roomId, err := s.createRoom(gameId)
 	if err != nil {
 		fmt.Printf("Could not create the game room: %s", err)
+		return "", err
 	}
 
 	return roomId, nil

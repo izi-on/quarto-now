@@ -1,8 +1,13 @@
-import { UserIframeComponent } from "@/components/iframe/iframe";
 import { Input } from "@/components/ui/input";
 import { useWebsocket } from "@/hooks/useWebsocket";
 import { LOBBY_WEBSOCKET_BASE } from "@/lib/env";
-import { useEffect, useState } from "react";
+import {
+  forwardToWebsocket,
+  sendMessageToIframe,
+  validateWithZod,
+} from "@/lib/utils";
+import { wsMessage, wsMessageSchema } from "@/types/websocketMessageSchema";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 export const GamePageUrlView = () => {
@@ -10,9 +15,42 @@ export const GamePageUrlView = () => {
   const { lobbyId } = useParams();
   const { websocket, setWebsocket } = useWebsocket();
   const [htmlString, setHtmlString] = useState("");
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  //handler for iframe msgs
+  const handleEventMsg = useCallback(
+    (msg: MessageEvent<wsMessage>) => {
+      if (msg.data.payload === undefined) return;
+      if (websocket === undefined) {
+        console.error("websocket is undefined cannot send msg");
+        return;
+      }
+      validateWithZod(wsMessageSchema)(JSON.parse(msg.data.payload))
+        .then(JSON.stringify)
+        .then(forwardToWebsocket(websocket))
+        .catch((err) => {
+          console.error(err);
+        });
+    },
+    [websocket],
+  );
+
+  const handlerWebsocketMsg = useCallback((data: string) => {
+    validateWithZod(wsMessageSchema)(JSON.parse(data))
+      .then(sendMessageToIframe(iframeRef))
+      .catch((err) => {
+        console.error(err);
+      });
+  }, []);
+
+  //capture new inputs from the iframe
+  useEffect(() => {
+    window.addEventListener("message", handleEventMsg);
+    return () => window.removeEventListener("message", handleEventMsg);
+  }, []);
 
   useEffect(() => {
-    fetch("/test.txt")
+    fetch("/test.html")
       .then((val) => {
         val.text().then(setHtmlString);
       })
@@ -33,7 +71,8 @@ export const GamePageUrlView = () => {
     };
 
     conn.onmessage = (event) => {
-      console.log("Via WS" + event.data);
+      console.log("Via WS:" + event.data);
+      handlerWebsocketMsg(event.data);
     };
 
     conn.onerror = (error) => {
@@ -65,13 +104,20 @@ export const GamePageUrlView = () => {
             </p>
           </div>
           <div className="flex flex-row gap-4">
-            {loadingLink && <h1>Loading...</h1>}
             {loadingLink && <Input value={"https:localhost//ideklmaoooo"} />}
           </div>
         </div>
       )}
       {htmlString !== "" && (
-        <UserIframeComponent userProvidedHTML={htmlString} />
+        <div>
+          <iframe
+            ref={iframeRef}
+            src={"http://localhost:5173"}
+            sandbox="allow-scripts allow-same-origin"
+            srcDoc={`${htmlString}`}
+            style={{ width: "100%", height: "500px", border: "1px solid #ccc" }}
+          />
+        </div>
       )}
     </div>
   );

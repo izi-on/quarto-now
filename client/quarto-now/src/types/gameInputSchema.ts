@@ -25,6 +25,7 @@ export const InputSettingsSchema = z.record(
 
 export type InputSettings = z.infer<typeof InputSettingsSchema>;
 
+//might be useful later
 export const GameUserInputSchema = z.object({
   id: z.string(),
   displayName: z.string(),
@@ -39,3 +40,10 @@ export const GameUserInputSchema = z.object({
 });
 
 export type GameUserInput = z.infer<typeof GameUserInputSchema>;
+
+export const promptInputSchema = z.object({
+  prompt: z.string().min(1, { message: "Cannot have an empty prompt" }),
+  firstTurn: z.boolean(),
+});
+
+export type promptInput = z.infer<typeof promptInputSchema>;

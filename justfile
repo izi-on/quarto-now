@@ -4,5 +4,5 @@ server_dir := "server/"
 run-client: 
   just {{client_dir}}/run
 
-run-server:
+run-server: 
   just {{server_dir}}/run

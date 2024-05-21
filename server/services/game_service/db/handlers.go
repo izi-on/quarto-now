@@ -9,7 +9,7 @@ import (
 )
 
 func (s *Service) HandleRoomCreation(c *gin.Context) {
-	var request GameCreationRequest
+	var request RoomCreationRequest
 	if err := c.ShouldBindBodyWithJSON(&request); err != nil {
 		c.String(http.StatusBadRequest, fmt.Sprintf("Invalid JSON format: %s", err))
 	}
@@ -18,7 +18,7 @@ func (s *Service) HandleRoomCreation(c *gin.Context) {
 		fmt.Println(err)
 		c.String(http.StatusInternalServerError, fmt.Sprintf("Could not create the room: %s", err))
 	}
-	response := GameCreationResponse{RoomID: roomId}
+	response := RoomCreationResponse{RoomID: roomId}
 	c.JSON(http.StatusOK, response)
 }
 

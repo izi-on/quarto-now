@@ -1,21 +1,7 @@
-import { GAMES } from "@/assets/gameInputDefinitions";
-import GameGridBlock from "@/components/game-grid-block/GameGridBlock";
+import { v4 as uuidv4 } from "uuid";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import {
-  GameUserInput,
-  InputSettings,
-  InputSettingsSchema,
-} from "@/types/gameInputSchema";
+import { promptInput, promptInputSchema } from "@/types/gameInputSchema";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -23,120 +9,110 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Toaster } from "@/components/ui/toaster";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { createRoom, getHtmlCode } from "@/api/lobby";
 
 export const HomeScreenView = () => {
-  const form = useForm<InputSettings>({
-    resolver: zodResolver(InputSettingsSchema),
-    defaultValues: {},
+  const form = useForm<promptInput>({
+    resolver: zodResolver(promptInputSchema),
+    defaultValues: {
+      firstTurn: false,
+    },
   });
   // const toast = useToast();
   const navigate = useNavigate();
-  const onFormSubmit = useCallback(
-    (game: GameUserInput, data: InputSettings) => {
-      console.log(game);
-      console.log(data);
-      // generateLobbyWithId()
-      //   .then((lobbyId: string) => {
-      //     navigate("/game-page-url/" + lobbyId);
-      //   })
-      //   .catch((err: Error) => {
-      //     toast.toast({
-      //       variant: "destructive",
-      //       title: "Error while creating the lobby",
-      //       description: err.message,
-      //     });
-      //   });
-      navigate("/game-page-url/" + "abdc");
-    },
-    [],
-  );
+  const [loading, setLoading] = useState(false);
+  const [progVal, setProgVal] = useState(0);
+  const onFormSubmit = useCallback((data: promptInput) => {
+    console.log(data);
+    setLoading(true);
+    setProgVal(30);
+    getHtmlCode(data)
+      .then(({ name, htmlCode }) => {
+        setProgVal(90);
+        return createRoom({
+          gameId: uuidv4(),
+          name: name,
+          htmlCode: htmlCode,
+        });
+      })
+      .then(({ roomId }) => {
+        setProgVal(100);
+        navigate(`/game-page-url/${roomId}`);
+      });
+  }, []);
+
   return (
-    <div className="w-full">
+    <div className="flex w-full h-[100vh] justify-center items-center">
       <div className="container mx-auto">
-        <div className="flex gap-8 py-20 lg:py-40 items-center justify-center flex-col">
-          <div className="flex gap-4 flex-col">
-            <h1 className="text-5xl md:text-7xl max-w-2xl tracking-tighter text-center font-regular">
-              Just Play!
-            </h1>
-            <p className="text-lg md:text-xl leading-relaxed tracking-tight text-muted-foreground max-w-2xl text-center">
-              Select a game to play and pass the link :)
-            </p>
-          </div>
-          <div className="grid justify-center align-middle grid-cols-3 gap-4">
-            {GAMES.map((game, gameIdx) => (
-              <Dialog
-                onOpenChange={() => form.reset()}
-                key={"App-GAMES-" + gameIdx}
+        {!loading && (
+          <div className="flex gap-8 py-20 lg:py-40 items-center justify-center flex-col">
+            <div className="flex gap-4 flex-col">
+              <h1 className="text-5xl md:text-7xl max-w-2xl tracking-tighter text-center font-regular">
+                Just Play!
+              </h1>
+              <p className="text-lg md:text-xl leading-relaxed tracking-tight text-muted-foreground max-w-2xl text-center">
+                Enter the instructions for your turn-based game!
+              </p>
+            </div>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onFormSubmit)}
+                className="w-1/2 space-y-8"
               >
-                <DialogTrigger>
-                  <GameGridBlock name={game.displayName} />
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[425px]">
-                  <DialogHeader>
-                    <DialogTitle>
-                      Game Config for {game.displayName}
-                    </DialogTitle>
-                  </DialogHeader>
-                  <Form {...form}>
-                    <form
-                      onSubmit={form.handleSubmit((data) =>
-                        onFormSubmit(game, data),
-                      )}
-                      className="space-y-8"
-                    >
-                      {game.requestedInputs.map((reqInp, idx) => {
-                        return (
-                          <FormField
-                            key={"App-GAMES-game.requestedInputs-" + idx}
-                            control={form.control}
-                            name={reqInp.name}
-                            defaultValue={reqInp.defaultValue}
-                            render={({ field }) => {
-                              const inpField = () => {
-                                switch (reqInp.input) {
-                                  case "boolean":
-                                    return (
-                                      <Switch
-                                        checked={field.value as boolean}
-                                        onCheckedChange={field.onChange}
-                                        aria-readonly
-                                      />
-                                    );
-                                  case "string":
-                                    return <Input {...field} type="text" />;
-                                  case "integer":
-                                    return <Input {...field} type="number" />;
-                                }
-                              };
-                              return (
-                                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                                  <FormLabel className="text-base">
-                                    {reqInp.label}
-                                  </FormLabel>
-                                  <FormControl>{inpField()}</FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              );
-                            }}
+                <FormField
+                  control={form.control}
+                  name="prompt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          className="overflow-auto"
+                          placeholder="Example: Generate a Tic Tac Toe game!"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="firstTurn"
+                  render={({ field }) => (
+                    <FormItem className="space-x-3 items-center justify-center">
+                      <FormControl>
+                        <div className="flex flex-row space-x-3 items-center justify-center">
+                          <Label>First Turn</Label>
+                          <Switch
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
                           />
-                        );
-                      })}
-                      <DialogFooter></DialogFooter>
-                      <Button type="submit">Go!</Button>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
-            ))}
+                        </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <Button type="submit">Play!</Button>
+              </form>
+            </Form>
           </div>
-        </div>
+        )}
+        {loading && (
+          <div className="flex flex-col items-center">
+            <h1 className="text-lg md:text-xl leading-relaxed tracking-tight text-muted-foreground max-w-2xl text-center">
+              Loading...
+            </h1>
+            <Progress className="w-[50vh]" value={progVal} />
+          </div>
+        )}
       </div>
       <Toaster />
     </div>

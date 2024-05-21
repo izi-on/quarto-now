@@ -1,17 +1,17 @@
 package db
 
-type GameCreationRequest struct {
-	GameID   string `json:"game_id"`
+type RoomCreationRequest struct {
+	GameID   string `json:"gameId"`
 	Name     string `json:"name"`
-	HTMLCode string `json:"html_code"`
+	HTMLCode string `json:"htmlCode"`
 }
 
-type GameCreationResponse struct {
-	RoomID string `json:"room_id"`
+type RoomCreationResponse struct {
+	RoomID string `json:"roomId"`
 }
 
 type GameDocument struct {
-	GameID   string `bson:"game_id"`
+	GameID   string `bson:"gameId"`
 	Name     string `bson:"name"`
-	HTMLCode string `bson:"html_code"`
+	HTMLCode string `bson:"htmlCode"`
 }

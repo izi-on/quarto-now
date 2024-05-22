@@ -21,7 +21,15 @@ type Hub struct {
 	id         string
 }
 
+type WSType string
+
+const (
+	TurnInfo  WSType = "turnInfo"
+	GameStart WSType = "gameStart"
+)
+
 type PayloadMsg struct {
-	ClientId string `json:"client_id"` // id of the sender
-	JSONStr  string `json:"json_str"`
+	ClientId string `json:"clientId"` // id of the sender
+	Type     WSType `json:"type"`
+	JSONStr  string `json:"jsonStr"`
 }

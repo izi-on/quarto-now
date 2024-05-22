@@ -1,12 +1,14 @@
 import { z } from "zod";
 
 // GET HTML CODE
-export const responseGetHtmlCodeSchema = z.object({
+export const responseGenerateHtmlCodeSchema = z.object({
   htmlCode: z.string(),
   name: z.string(),
 });
 
-export type responseGetHtmlCode = z.infer<typeof responseGetHtmlCodeSchema>;
+export type responseGenerateHtmlCode = z.infer<
+  typeof responseGenerateHtmlCodeSchema
+>;
 
 // CREATE ROOM
 export const requestCreateRoomSchema = z.object({
@@ -22,3 +24,16 @@ export const responseCreateRoomSchema = z.object({
 });
 
 export type responseCreateRoom = z.infer<typeof responseCreateRoomSchema>;
+
+// GET HTML CODE
+export const requestGetHtmlCodeSchema = z.object({
+  roomId: z.string(),
+});
+
+export type requestGetHtmlCode = z.infer<typeof requestGetHtmlCodeSchema>;
+
+export const responseGetHtmlCodeSchema = z.object({
+  htmlCode: z.string(),
+});
+
+export type responseGetHtmlCode = z.infer<typeof responseGetHtmlCodeSchema>;

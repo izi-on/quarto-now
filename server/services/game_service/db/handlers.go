@@ -23,7 +23,7 @@ func (s *Service) HandleRoomCreation(c *gin.Context) {
 }
 
 func (s *Service) HandleGetCode(c *gin.Context) {
-	roomId := c.Query("room-id")
+	roomId := c.Query("roomId")
 	htmlCode, err := s.GetHTMLCode(roomId)
 	if err != nil {
 		fmt.Println(err)

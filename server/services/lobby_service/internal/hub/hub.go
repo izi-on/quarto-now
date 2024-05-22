@@ -80,6 +80,34 @@ func (h *Hub) forwardMsgToHub(payload []byte) error {
 	return nil
 }
 
+func (h *Hub) SignalGameStart(roomId string) error {
+	clients, err := h.db.GetClientsForRoom(roomId)
+	if err != nil {
+		fmt.Printf("Could not get clients for room id: %s: %s", roomId, err)
+		return err
+	}
+	for _, client := range *clients {
+		signalMsg := &PayloadMsg{
+			ClientId: client.ID,
+			Type:     GameStart,
+			JSONStr:  "{\"gameStart\": true}",
+		}
+		jsonMsg, err := json.Marshal(signalMsg)
+		if err != nil {
+			fmt.Printf("Could not marshal the signal to start the game: %s", err)
+			return err
+		}
+		h.forwardMsgToHub(jsonMsg)
+	}
+
+	// set has_started to true for room
+	err = h.db.SetRoomStart(roomId)
+	if err != nil {
+		fmt.Printf("Could not set the start value of the room %s to true: %s", roomId, err)
+	}
+	return nil
+}
+
 func (h *Hub) Run(ctx context.Context) {
 	pubsub := h.pubsub.GetSubscriber(h.id)
 	defer pubsub.Close()
@@ -90,9 +118,17 @@ func (h *Hub) Run(ctx context.Context) {
 			lock.Lock()
 			h.clients[client.id] = client
 			lock.Unlock()
-			err := h.db.SetClient(client.id, client.roomId, h.id)
+			isGameStart, err := h.db.SetClient(client.id, client.roomId, h.id)
 			if err != nil {
 				go func() { h.unregister <- client }()
+			}
+			if isGameStart {
+				go func() {
+					err = h.SignalGameStart(client.roomId)
+					if err != nil {
+						panic("unable to start game despite clients being there!")
+					}
+				}()
 			}
 
 		case client := <-h.unregister:

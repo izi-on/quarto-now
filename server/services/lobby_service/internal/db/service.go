@@ -44,8 +44,8 @@ func (s *Service) GetHubIdForClient(clientId string) (string, error) {
 	return hubId, nil
 }
 
-func (s *Service) GetClientsForRoom(roomId string) (*[]ClientToRoom, error) {
-	var result []ClientToRoom
+func (s *Service) GetClientsForRoom(roomId string) (*[]ClientRoomHub, error) {
+	var result []ClientRoomHub
 	query := "SELECT client_id FROM client_room_hub WHERE room_id = $1"
 	rows, err := s.db.Query(query, roomId)
 	if err != nil {
@@ -59,7 +59,7 @@ func (s *Service) GetClientsForRoom(roomId string) (*[]ClientToRoom, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var clientToRoom ClientToRoom
+		var clientToRoom ClientRoomHub
 		err := rows.Scan(&clientToRoom.ID)
 		if err != nil {
 			fmt.Println(err)
@@ -101,19 +101,25 @@ func (s *Service) RemoveClient(clientId string) error {
 	return nil
 }
 
-func (s *Service) SetClient(clientId string, roomId string, hubId string) error {
+func (s *Service) SetClient(clientId string, roomId string, hubId string) (bool, error) {
 	rows, err := s.GetClientsForRoom(roomId)
 	if err != nil {
 		fmt.Println(err)
 		if err != sql.ErrNoRows {
-			return err
+			return false, err
 		}
 	}
 	if len(*rows) >= 2 {
 		err := fmt.Errorf("a room cannot contain more than 2 clients")
 		fmt.Println(err)
-		return err
+		return false, err
 	}
+
+	gameStart := false
+	if len(*rows) == 1 {
+		gameStart = true
+	}
+
 	query := `
     INSERT INTO 
       client_room_hub (client_id, room_id, hub_id)
@@ -128,8 +134,21 @@ func (s *Service) SetClient(clientId string, roomId string, hubId string) error 
 	_, err = s.db.Exec(query, clientId, roomId, hubId)
 	if err != nil {
 		fmt.Println(err)
-		return err
+		return false, err
 	}
 
+	return gameStart, nil
+}
+
+func (s *Service) SetRoomStart(roomId string) error {
+	query := `
+    UPDATE room
+    SET has_started = true
+    WHERE id = $1
+  `
+	_, err := s.db.Exec(query, roomId)
+	if err != nil {
+		fmt.Printf("Could not set room %s to start boolean value: %s", roomId, err)
+	}
 	return nil
 }

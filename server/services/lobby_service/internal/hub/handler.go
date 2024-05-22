@@ -21,8 +21,8 @@ func (h *Hub) HandleConnections(c *gin.Context) {
 		return
 	}
 
-	clientId := c.Request.Header.Get("client-id")
-	roomId := c.Request.Header.Get("room-id")
+	clientId := c.Request.Header.Get("clientId")
+	roomId := c.Request.Header.Get("roomId")
 	client := h.makeNewClient(conn, clientId, roomId)
 	fmt.Println("created new client", client)
 	h.register <- client

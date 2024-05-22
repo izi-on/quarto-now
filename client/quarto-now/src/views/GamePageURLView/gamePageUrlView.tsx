@@ -1,31 +1,39 @@
+import { io } from "socket.io-client";
+import { getHtmlCode } from "@/api/lobby";
 import { Input } from "@/components/ui/input";
+import { ClientContext } from "@/context/clientContextProvider";
 import { useWebsocket } from "@/hooks/useWebsocket";
-import { LOBBY_WEBSOCKET_BASE } from "@/lib/env";
+import { BASE_URL, LOBBY_SERVICE_PORT } from "@/lib/env";
 import {
   forwardToWebsocket,
   sendMessageToIframe,
   validateWithZod,
 } from "@/lib/utils";
 import { wsMessage, wsMessageSchema } from "@/types/websocketMessageSchema";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 export const GamePageUrlView = () => {
-  const [loadingLink, setLoadingLink] = useState(true);
+  const [gameLink, setGameLink] = useState(true);
   const { lobbyId } = useParams();
+  if (lobbyId === undefined) {
+    throw Error("lobby id is not defined!");
+  }
   const { websocket, setWebsocket } = useWebsocket();
   const [htmlString, setHtmlString] = useState("");
+  const [secondPlayerConnected, setSecondPlayerConnected] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const { clientId } = useContext(ClientContext);
 
   //handler for iframe msgs
   const handleEventMsg = useCallback(
     (msg: MessageEvent<wsMessage>) => {
-      if (msg.data.payload === undefined) return;
+      if (msg.data.jsonStr === undefined) return;
       if (websocket === undefined) {
         console.error("websocket is undefined cannot send msg");
         return;
       }
-      validateWithZod(wsMessageSchema)(JSON.parse(msg.data.payload))
+      validateWithZod(wsMessageSchema)(JSON.parse(msg.data.jsonStr))
         .then(JSON.stringify)
         .then(forwardToWebsocket(websocket))
         .catch((err) => {
@@ -37,11 +45,27 @@ export const GamePageUrlView = () => {
 
   const handlerWebsocketMsg = useCallback((data: string) => {
     validateWithZod(wsMessageSchema)(JSON.parse(data))
-      .then(sendMessageToIframe(iframeRef))
+      .then(({ type, jsonStr: payload }) => {
+        switch (type) {
+          case "turnInfo":
+            sendMessageToIframe(iframeRef)({ type, jsonStr: payload });
+            break;
+          case "gameStart":
+            setSecondPlayerConnected(true);
+            break;
+        }
+      })
       .catch((err) => {
         console.error(err);
       });
   }, []);
+
+  //fetch the html code for the game
+  useEffect(() => {
+    getHtmlCode({ roomId: lobbyId }).then(({ htmlCode }) => {
+      setHtmlString(htmlCode);
+    });
+  });
 
   //capture new inputs from the iframe
   useEffect(() => {
@@ -59,40 +83,50 @@ export const GamePageUrlView = () => {
       });
   }, []);
 
+  //websocket connection hook
   useEffect(() => {
-    console.log(LOBBY_WEBSOCKET_BASE);
+    console.log(BASE_URL);
     console.log("ESTABLISHING WEBSOCKET CONNECTION");
-    const conn = new WebSocket(`${LOBBY_WEBSOCKET_BASE}/${lobbyId}`);
+    const conn = io(`${BASE_URL}/${lobbyId}`, {
+      extraHeaders: {
+        clientId: clientId,
+        roomId: lobbyId,
+      },
+    });
     setWebsocket(conn);
 
-    conn.onopen = () => {
+    const handleOpen = () => {
       console.log("websocket connected");
-      conn.send("client is connected");
     };
+    conn.on("connect", handleOpen);
 
-    conn.onmessage = (event) => {
-      console.log("Via WS:" + event.data);
-      handlerWebsocketMsg(event.data);
+    const handleMsg = (data: string) => {
+      console.log("Via WS:" + data);
+      handlerWebsocketMsg(data);
     };
+    conn.on("message", handleMsg);
 
-    conn.onerror = (error) => {
+    const handleErr = (error: string) => {
       console.error("WebSocket error: ", error);
     };
+    conn.on("error", handleErr);
 
-    conn.onclose = () => {
+    const handleClose = () => {
       console.log("websocket disconnected");
       setWebsocket(undefined);
     };
+    conn.on("close", handleClose);
 
     return () => {
       console.log("closing websocket");
-      conn.close();
+      conn.disconnect();
     };
   }, []);
 
   return (
     <div className="flex h-screen justify-center items-center mx-auto">
-      {htmlString === "" && (
+      {htmlString === "" && <div>Getting code for the game...</div>}
+      {!secondPlayerConnected && htmlString !== "" && (
         <div className="flex flex-col text-center py-14 gap-4 items-center">
           <div className="flex flex-col gap-2 space-y-4">
             <h1 className="text-3xl font-bold">Waiting Room</h1>
@@ -104,11 +138,11 @@ export const GamePageUrlView = () => {
             </p>
           </div>
           <div className="flex flex-row gap-4">
-            {loadingLink && <Input value={"https:localhost//ideklmaoooo"} />}
+            <Input value={`${BASE_URL}:${LOBBY_SERVICE_PORT}/${lobbyId}`} />
           </div>
         </div>
       )}
-      {htmlString !== "" && (
+      {secondPlayerConnected && htmlString !== "" && (
         <div>
           <iframe
             ref={iframeRef}

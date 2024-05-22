@@ -1,5 +1,6 @@
-import { promptInput } from "@/types/gameInputSchema";
+import { wsMessage } from "@/types/websocketMessageSchema";
 import { type ClassValue, clsx } from "clsx";
+import { Socket } from "socket.io-client";
 import { twMerge } from "tailwind-merge";
 import { ZodSchema } from "zod";
 
@@ -7,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const forwardToWebsocket = (ws: WebSocket) => {
+export const forwardToWebsocket = (ws: Socket) => {
   return (data: string) => {
     ws.send(data);
   };
@@ -16,8 +17,8 @@ export const forwardToWebsocket = (ws: WebSocket) => {
 export const sendMessageToIframe = (
   iFrameRef: React.RefObject<HTMLIFrameElement>,
 ) => {
-  return (msg: object) => {
-    iFrameRef.current?.contentWindow?.postMessage(msg, "*");
+  return (msg: wsMessage) => {
+    iFrameRef.current?.contentWindow?.postMessage(msg.jsonStr, "*");
   };
 };
 

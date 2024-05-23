@@ -1,9 +1,8 @@
 import { createContext, useState } from "react";
-import { Socket } from "socket.io-client";
 
 export const WebsocketContext = createContext<{
-  websocket: Socket | undefined;
-  setWebsocket: React.Dispatch<React.SetStateAction<Socket | undefined>>;
+  websocket: WebSocket | undefined;
+  setWebsocket: React.Dispatch<React.SetStateAction<WebSocket | undefined>>;
 }>({
   websocket: undefined,
   setWebsocket: () => {},
@@ -14,7 +13,7 @@ export const WebSocketContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [websocket, setWebsocket] = useState<Socket | undefined>();
+  const [websocket, setWebsocket] = useState<WebSocket | undefined>();
 
   return (
     <WebsocketContext.Provider

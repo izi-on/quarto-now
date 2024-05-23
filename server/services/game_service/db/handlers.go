@@ -14,6 +14,7 @@ func (s *Service) HandleRoomCreation(c *gin.Context) {
 		c.String(http.StatusBadRequest, fmt.Sprintf("Invalid JSON format: %s", err))
 	}
 	roomId, err := s.CreateRoomAndGetID(request.GameID, request.Name, request.HTMLCode)
+	fmt.Println("room id is:", roomId)
 	if err != nil {
 		fmt.Println(err)
 		c.String(http.StatusInternalServerError, fmt.Sprintf("Could not create the room: %s", err))
@@ -24,7 +25,7 @@ func (s *Service) HandleRoomCreation(c *gin.Context) {
 
 func (s *Service) HandleGetCode(c *gin.Context) {
 	roomId := c.Query("roomId")
-	htmlCode, err := s.GetHTMLCode(roomId)
+	htmlCode, err := s.GetHTMLCodeFromRoomId(roomId)
 	if err != nil {
 		fmt.Println(err)
 		c.String(http.StatusInternalServerError, fmt.Sprintf("Could not get the html code for the given request: %s", err))
@@ -46,12 +47,12 @@ func (s *Service) GetHandlers() []router.Handler {
 		{
 			Fn:           s.HandleRoomCreation,
 			EndpointType: "POST",
-			EndpointPath: "/create-room",
+			EndpointPath: "create-room",
 		},
 		{
 			Fn:           s.HandleGetCode,
 			EndpointType: "GET",
-			EndpointPath: "/get-game-html",
+			EndpointPath: "get-game-html",
 		},
 	}
 	return handlers

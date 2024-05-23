@@ -1,8 +1,10 @@
-import { createContext } from "react";
+import { MutableRefObject, createContext, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 
-export const ClientContext = createContext<{ clientId: string }>({
-  clientId: "",
+export const ClientContext = createContext<{
+  clientId: MutableRefObject<string> | undefined;
+}>({
+  clientId: undefined,
 });
 
 export const ClientContextProvider = ({
@@ -10,10 +12,11 @@ export const ClientContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const clientId = useRef(uuidv4());
   return (
     <ClientContext.Provider
       value={{
-        clientId: uuidv4(),
+        clientId: clientId,
       }}
     >
       {children}

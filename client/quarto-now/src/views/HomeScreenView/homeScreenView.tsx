@@ -17,7 +17,7 @@ import { useCallback, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { createHtmlCode, generateHtmlCode } from "@/api/lobby";
+import { createRoom, generateHtmlCode } from "@/api/lobby";
 
 export const HomeScreenView = () => {
   const form = useForm<promptInput>({
@@ -37,7 +37,7 @@ export const HomeScreenView = () => {
     generateHtmlCode(data)
       .then(({ name, htmlCode }) => {
         setProgVal(90);
-        return createHtmlCode({
+        return createRoom({
           gameId: uuidv4(),
           name: name,
           htmlCode: htmlCode,

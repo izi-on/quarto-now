@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export const forwardToWebsocket = (ws: Socket) => {
+export const forwardToWebsocket = (ws: WebSocket) => {
   return (data: string) => {
     ws.send(data);
   };

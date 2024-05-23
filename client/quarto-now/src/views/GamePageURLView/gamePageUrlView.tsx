@@ -1,8 +1,6 @@
-import { io } from "socket.io-client";
 import { getHtmlCode } from "@/api/lobby";
 import { Input } from "@/components/ui/input";
 import { ClientContext } from "@/context/clientContextProvider";
-import { useWebsocket } from "@/hooks/useWebsocket";
 import { BASE_URL, LOBBY_SERVICE_PORT } from "@/lib/env";
 import {
   forwardToWebsocket,
@@ -14,41 +12,46 @@ import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 export const GamePageUrlView = () => {
-  const [gameLink, setGameLink] = useState(true);
   const { lobbyId } = useParams();
   if (lobbyId === undefined) {
     throw Error("lobby id is not defined!");
   }
-  const { websocket, setWebsocket } = useWebsocket();
   const [htmlString, setHtmlString] = useState("");
   const [secondPlayerConnected, setSecondPlayerConnected] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const { clientId } = useContext(ClientContext);
 
-  //handler for iframe msgs
-  const handleEventMsg = useCallback(
-    (msg: MessageEvent<wsMessage>) => {
-      if (msg.data.jsonStr === undefined) return;
+  const createEventHandler = useCallback((websocket: WebSocket) => {
+    return (msg: MessageEvent) => {
+      if (
+        iframeRef.current === null ||
+        msg.source !== iframeRef.current.contentWindow
+      ) {
+        return;
+      }
       if (websocket === undefined) {
         console.error("websocket is undefined cannot send msg");
         return;
       }
-      validateWithZod(wsMessageSchema)(JSON.parse(msg.data.jsonStr))
-        .then(JSON.stringify)
-        .then(forwardToWebsocket(websocket))
-        .catch((err) => {
-          console.error(err);
-        });
-    },
-    [websocket],
-  );
+      console.log("websocket is defined!");
+      if (clientId === undefined) {
+        throw Error("client id is undefined");
+      }
+      const msgWS: wsMessage = {
+        clientId: clientId.current,
+        type: "turnInfo",
+        jsonStr: msg.data,
+      };
+      forwardToWebsocket(websocket)(JSON.stringify(msgWS));
+    };
+  }, []);
 
   const handlerWebsocketMsg = useCallback((data: string) => {
     validateWithZod(wsMessageSchema)(JSON.parse(data))
-      .then(({ type, jsonStr: payload }) => {
+      .then(({ clientId, type, jsonStr }) => {
         switch (type) {
           case "turnInfo":
-            sendMessageToIframe(iframeRef)({ type, jsonStr: payload });
+            sendMessageToIframe(iframeRef)({ clientId, type, jsonStr });
             break;
           case "gameStart":
             setSecondPlayerConnected(true);
@@ -65,63 +68,55 @@ export const GamePageUrlView = () => {
     getHtmlCode({ roomId: lobbyId }).then(({ htmlCode }) => {
       setHtmlString(htmlCode);
     });
-  });
-
-  //capture new inputs from the iframe
-  useEffect(() => {
-    window.addEventListener("message", handleEventMsg);
-    return () => window.removeEventListener("message", handleEventMsg);
-  }, []);
-
-  useEffect(() => {
-    fetch("/test.html")
-      .then((val) => {
-        val.text().then(setHtmlString);
-      })
-      .catch((err) => {
-        console.log("Couldn't fetch the code for the game", err);
-      });
-  }, []);
+  }, [lobbyId]);
 
   //websocket connection hook
   useEffect(() => {
-    console.log(BASE_URL);
+    if (htmlString === "") {
+      console.log(
+        "Waiting until htmlCode is fetched before establishing websocket",
+      );
+      return;
+    }
+    if (clientId === undefined) {
+      throw Error("client id ref not defined!");
+    }
     console.log("ESTABLISHING WEBSOCKET CONNECTION");
-    const conn = io(`${BASE_URL}/${lobbyId}`, {
-      extraHeaders: {
-        clientId: clientId,
-        roomId: lobbyId,
-      },
-    });
-    setWebsocket(conn);
+    const conn = new WebSocket(
+      `ws://${BASE_URL}:${LOBBY_SERVICE_PORT}/lobby-service?clientId=${clientId.current}&roomId=${lobbyId}`,
+    );
 
     const handleOpen = () => {
       console.log("websocket connected");
     };
-    conn.on("connect", handleOpen);
+    conn.onopen = handleOpen;
 
-    const handleMsg = (data: string) => {
+    const handleMsg = (event: MessageEvent) => {
+      const data = event.data;
       console.log("Via WS:" + data);
       handlerWebsocketMsg(data);
     };
-    conn.on("message", handleMsg);
+    conn.onmessage = handleMsg;
 
-    const handleErr = (error: string) => {
-      console.error("WebSocket error: ", error);
+    const handleErr = (event: Event) => {
+      console.error("WebSocket error:", event);
     };
-    conn.on("error", handleErr);
+    conn.onerror = handleErr;
 
     const handleClose = () => {
       console.log("websocket disconnected");
-      setWebsocket(undefined);
     };
-    conn.on("close", handleClose);
+    conn.onclose = handleClose;
+
+    const handleEventMsg = createEventHandler(conn);
+    window.addEventListener("message", handleEventMsg);
 
     return () => {
       console.log("closing websocket");
-      conn.disconnect();
+      conn.close();
+      window.removeEventListener("message", handleEventMsg);
     };
-  }, []);
+  }, [lobbyId, handlerWebsocketMsg, createEventHandler, htmlString]);
 
   return (
     <div className="flex h-screen justify-center items-center mx-auto">
@@ -138,17 +133,21 @@ export const GamePageUrlView = () => {
             </p>
           </div>
           <div className="flex flex-row gap-4">
-            <Input value={`${BASE_URL}:${LOBBY_SERVICE_PORT}/${lobbyId}`} />
+            <Input
+              // TODO: include protocol?
+              value={`${BASE_URL}:5173/game-page-url/${lobbyId}`} // TODO: make env var for webapp port
+            />
           </div>
         </div>
       )}
       {secondPlayerConnected && htmlString !== "" && (
-        <div>
+        <div className="w-full h-full">
           <iframe
             ref={iframeRef}
             src={"http://localhost:5173"}
             sandbox="allow-scripts allow-same-origin"
             srcDoc={`${htmlString}`}
+            className="bg-green-500"
             style={{ width: "100%", height: "500px", border: "1px solid #ccc" }}
           />
         </div>

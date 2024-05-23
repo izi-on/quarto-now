@@ -12,7 +12,7 @@ import (
 	"github.com/izi-on/quarto-now/server/services/lobby_service/internal/pubsub"
 )
 
-var lock sync.Mutex
+var registerLock sync.Mutex
 
 func (h *Hub) forwardMsgToClient(payload string) error { // TODO: can definitely be optimized
 	// extract clientId
@@ -52,9 +52,10 @@ func (h *Hub) forwardMsgToClient(payload string) error { // TODO: can definitely
 
 func (h *Hub) makeNewClient(conn *websocket.Conn, clientId string, roomId string) Client {
 	client := Client{
-		id:     clientId,
-		conn:   conn,
-		roomId: roomId,
+		id:           clientId,
+		conn:         conn,
+		roomId:       roomId,
+		connAttempts: 0,
 	}
 	return client
 }
@@ -62,6 +63,7 @@ func (h *Hub) makeNewClient(conn *websocket.Conn, clientId string, roomId string
 func (h *Hub) forwardMsgToHub(payload []byte) error {
 	// extract hubId
 	var msg PayloadMsg
+	fmt.Println("THE PAYLOAD IS:", string(payload))
 	err := json.Unmarshal(payload, &msg)
 	if err != nil {
 		return err
@@ -90,7 +92,7 @@ func (h *Hub) SignalGameStart(roomId string) error {
 		signalMsg := &PayloadMsg{
 			ClientId: client.ID,
 			Type:     GameStart,
-			JSONStr:  "{\"gameStart\": true}",
+			JSONStr:  "",
 		}
 		jsonMsg, err := json.Marshal(signalMsg)
 		if err != nil {
@@ -108,21 +110,59 @@ func (h *Hub) SignalGameStart(roomId string) error {
 	return nil
 }
 
+func (h *Hub) registerClient(client *Client) (bool, error) {
+	registerLock.Lock()
+	defer registerLock.Unlock()
+	fmt.Println("received register signal for client: ", client.id)
+	if client, ok := h.clients[client.id]; ok {
+		fmt.Println("Client already exists!")
+		client.connAttempts += 1
+	}
+	h.clients[client.id] = client
+	isGameStart, err := h.db.SetClient(client.id, client.roomId, h.id)
+	if err != nil {
+		fmt.Printf("Error while setting the client in the database: %s\n", err)
+		return false, err
+	}
+	return isGameStart, nil
+}
+
+func (h *Hub) unregisterClient(clientId string) {
+	registerLock.Lock()
+	defer registerLock.Unlock()
+	client, ok := h.clients[clientId]
+	if !ok {
+		fmt.Printf("cannot unregister client %s it does not exist in map!\n", clientId)
+		return
+	}
+	if client.connAttempts > 0 {
+		fmt.Printf("client with id %s has attempted to connect already, so skipping unregister...\n", clientId)
+		client.connAttempts -= 1
+		return
+	}
+	fmt.Println("received unregister signal for client: ", client.id)
+	err := h.db.RemoveClient(client.id)
+	if err != nil {
+		fmt.Printf("Error while removing client: %s\n", err)
+	}
+	if err := client.conn.Close(); err != nil {
+		fmt.Printf("Error closing the connection: %s", err)
+	}
+	delete(h.clients, client.id)
+}
+
 func (h *Hub) Run(ctx context.Context) {
 	pubsub := h.pubsub.GetSubscriber(h.id)
 	defer pubsub.Close()
 	for {
 		select {
 		case client := <-h.register:
-			fmt.Println("received register signal")
-			lock.Lock()
-			h.clients[client.id] = client
-			lock.Unlock()
-			isGameStart, err := h.db.SetClient(client.id, client.roomId, h.id)
+			isGameStart, err := h.registerClient(client)
 			if err != nil {
-				go func() { h.unregister <- client }()
+				go func() { fmt.Println("Couldn't register client, sending unregister"); h.unregister <- client.id }()
 			}
 			if isGameStart {
+				fmt.Printf("starting game on room: %s\n", client.roomId)
 				go func() {
 					err = h.SignalGameStart(client.roomId)
 					if err != nil {
@@ -130,19 +170,8 @@ func (h *Hub) Run(ctx context.Context) {
 					}
 				}()
 			}
-
 		case client := <-h.unregister:
-			err := h.db.RemoveClient(client.id)
-			if err != nil {
-				fmt.Println(err)
-			}
-			if err := client.conn.Close(); err != nil {
-				fmt.Println(err)
-			}
-			lock.Lock()
-			delete(h.clients, client.id)
-			lock.Unlock()
-
+			h.unregisterClient(client)
 		case notification := <-pubsub.Channel(): // gets forwarded ws msg from some hub
 			h.forwardMsgToClient(notification.Payload)
 		}
@@ -156,9 +185,9 @@ func NewHub(pubsub pubsub.Pubsub, db *db.Service) (*Hub, error) {
 	}
 	return &Hub{
 		id:         id.String(),
-		clients:    make(map[string]Client),
-		register:   make(chan Client),
-		unregister: make(chan Client),
+		clients:    make(map[string]*Client),
+		register:   make(chan *Client),
+		unregister: make(chan string),
 		pubsub:     &pubsub,
 		db:         db,
 	}, nil

@@ -1,7 +1,6 @@
-import { BASE_URL, GAME_SERVICE_PORT } from "@/lib/env";
+import { BASE_URL, GAME_SERVICE_PORT, PROTOCOL } from "@/lib/env";
 import { validateWithZod } from "@/lib/utils";
 import {
-  responseGenerateHtmlCodeSchema,
   requestCreateRoom,
   responseCreateRoomSchema,
   responseGenerateHtmlCode,
@@ -12,72 +11,92 @@ import {
 } from "@/types/apiSchemas";
 import { promptInput } from "@/types/gameInputSchema";
 import axios from "axios";
+//
+// export async function generateHtmlCode(
+//   data: promptInput,
+// ): Promise<responseGenerateHtmlCode> {
+//   const response = await axios.post(
+//     `${PROTOCOL}//${BASE_URL}:${GAME_SERVICE_PORT}/generate-game`,
+//     data,
+//   );
+//
+//   return validateWithZod(responseGenerateHtmlCodeSchema)(response.data);
+// }
+//
 
 export async function generateHtmlCode(
   data: promptInput,
 ): Promise<responseGenerateHtmlCode> {
-  const response = await axios.post(
-    `${BASE_URL}:${GAME_SERVICE_PORT}/create`,
-    data,
-  );
-
-  return validateWithZod(responseGenerateHtmlCodeSchema)(response.data);
+  return fetch("/test.html")
+    .then((val) => val.text())
+    .then((val) => ({ htmlCode: val, name: "tictactoe" }));
 }
 
-export async function createHtmlCode(
+export async function createRoom(
   data: requestCreateRoom,
 ): Promise<responseCreateRoom> {
-  const response = await axios.post(
-    `${BASE_URL}:${GAME_SERVICE_PORT}/create`,
-    data,
-  );
+  try {
+    const response = await axios.post(
+      `${PROTOCOL}//${BASE_URL}:${GAME_SERVICE_PORT}/create-room`,
+      data,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
 
-  return validateWithZod(responseCreateRoomSchema)(response.data);
+    const responseData = response.data;
+    return validateWithZod(responseCreateRoomSchema)(responseData);
+  } catch (error) {
+    console.error("Error creating room:", error);
+    throw error;
+  }
 }
 
 export async function getHtmlCode(
   data: requestGetHtmlCode,
 ): Promise<responseGetHtmlCode> {
-  return fetch("/test.html")
-    .then((val) => {
-      return val.text();
-    })
-    .then((val) => ({ htmlCode: val }));
-}
+  const url = new URL(
+    `${PROTOCOL}//${BASE_URL}:${GAME_SERVICE_PORT}/get-game-html?roomId=${data.roomId}`,
+  );
 
-// export async function getHtmlCode(
-//   data: requestGetHtmlCode,
-// ): Promise<responseGetHtmlCode> {
-//   const response = await axios({
-//     method: "get",
-//     url: `${BASE_URL}:${GAME_SERVICE_PORT}/get-game-html`,
-//     responseType: "stream",
-//     params: data,
-//   });
-//
-//   const textResponse: string[] = [];
-//
-//   const handleStream = new Promise<responseGetHtmlCode>((resolve, reject) => {
-//     response.data.on("data", (chunk: Buffer) => {
-//       textResponse.push(chunk.toString("utf8"));
-//     });
-//
-//     response.data.on("end", () => {
-//       const finalStr = textResponse.join("");
-//       try {
-//         const validatedResponse = validateWithZod(responseGetHtmlCodeSchema)({
-//           htmlCode: finalStr,
-//         });
-//         resolve(validatedResponse);
-//       } catch (error) {
-//         reject(error);
-//       }
-//     });
-//
-//     response.data.on("error", (error: Error) => {
-//       reject(error);
-//     });
-//   });
-//
-//   return await handleStream;
-// }
+  const response = await fetch(url.toString(), {
+    method: "GET",
+  });
+
+  if (response.body === null) {
+    throw Error("Respose body is null");
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder("utf-8");
+  let textResponse = "";
+
+  const handleStream = new Promise<responseGetHtmlCode>((resolve, reject) => {
+    const readStream = () => {
+      reader
+        .read()
+        .then(({ done, value }) => {
+          if (done) {
+            try {
+              const validatedResponse = validateWithZod(
+                responseGetHtmlCodeSchema,
+              )({
+                htmlCode: textResponse,
+              });
+              resolve(validatedResponse);
+            } catch (error) {
+              reject(error);
+            }
+            return;
+          }
+          textResponse += decoder.decode(value, { stream: true });
+          readStream();
+        })
+        .catch(reject);
+    };
+    readStream();
+  });
+
+  return await handleStream;
+}

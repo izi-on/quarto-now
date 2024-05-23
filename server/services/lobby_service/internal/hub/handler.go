@@ -6,11 +6,18 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/izi-on/quarto-now/server/services/lobby_service/api"
 )
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool {
-		return true // TODO: clearly define origin
+		origin := r.Header.Get("Origin")
+		for _, c_origin := range api.Origins {
+			if origin == c_origin {
+				return true
+			}
+		}
+		return false // TODO: clearly define origin
 	},
 }
 
@@ -21,13 +28,13 @@ func (h *Hub) HandleConnections(c *gin.Context) {
 		return
 	}
 
-	clientId := c.Request.Header.Get("clientId")
-	roomId := c.Request.Header.Get("roomId")
+	clientId := c.Query("clientId")
+	roomId := c.Query("roomId")
 	client := h.makeNewClient(conn, clientId, roomId)
 	fmt.Println("created new client", client)
-	h.register <- client
+	h.register <- &client
 
-	defer func() { h.unregister <- client }()
+	defer func() { fmt.Println("Shutting down handler, sending unregister..."); h.unregister <- client.id }()
 
 	for {
 		_, p, err := conn.ReadMessage()

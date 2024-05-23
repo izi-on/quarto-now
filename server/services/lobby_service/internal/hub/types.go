@@ -7,15 +7,16 @@ import (
 )
 
 type Client struct {
-	conn   *websocket.Conn
-	id     string
-	roomId string
+	conn         *websocket.Conn
+	id           string
+	roomId       string
+	connAttempts int
 }
 
 type Hub struct {
-	clients    map[string]Client
-	register   chan (Client)
-	unregister chan (Client)
+	clients    map[string]*Client
+	register   chan (*Client)
+	unregister chan (string)
 	pubsub     *pubsub.Pubsub
 	db         *db.Service
 	id         string
@@ -29,7 +30,7 @@ const (
 )
 
 type PayloadMsg struct {
-	ClientId string `json:"clientId"` // id of the sender
-	Type     WSType `json:"type"`
 	JSONStr  string `json:"jsonStr"`
+	ClientId string `json:"clientId"`
+	Type     WSType `json:"type"`
 }

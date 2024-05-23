@@ -9,6 +9,7 @@ require (
 )
 
 require (
+	github.com/gin-contrib/cors v1.7.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	github.com/onsi/gomega v1.33.1 // indirect

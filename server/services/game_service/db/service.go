@@ -46,7 +46,7 @@ func (s *Service) getHtmlCodeFromGameId(gameId string) (*string, error) {
 
 	// Define filter options
 	filter := bson.D{
-		{"game_id", gameId},
+		{"gameId", gameId},
 	}
 
 	if err := s.mongoDbCollection.FindOne(context.TODO(), filter).Decode(&result); err != nil {
@@ -56,7 +56,7 @@ func (s *Service) getHtmlCodeFromGameId(gameId string) (*string, error) {
 	return &(result.HTMLCode), nil
 }
 
-func (s *Service) GetHTMLCode(roomId string) (*string, error) {
+func (s *Service) GetHTMLCodeFromRoomId(roomId string) (*string, error) {
 	gameId, err := s.getGameIdFromRoomId(roomId)
 	if err != nil {
 		fmt.Printf("Could not get the room ID: %s\n", err)

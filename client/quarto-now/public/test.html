@@ -9,89 +9,126 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        min-height: 100vh;
-        background: #f0f0f0;
+        height: 100vh;
         margin: 0;
-        font-family: "Arial", sans-serif;
+        background-color: #f0f0f0;
+        font-family: Arial, sans-serif;
       }
       #game {
         display: grid;
         grid-template-columns: repeat(3, 100px);
-        grid-template-rows: repeat(3, 100px);
         gap: 10px;
       }
       .cell {
         width: 100px;
         height: 100px;
-        background: #fff;
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 2rem;
+        font-size: 2em;
+        background-color: white;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        transition: background-color 0.3s;
+      }
+      .cell:hover {
         cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        background-color: #e0e0e0;
       }
-      .cell.x {
-        color: #ff3b30;
-      }
-      .cell.o {
-        color: #007aff;
-      }
-      .hidden {
-        display: none;
+      .disabled {
+        pointer-events: none;
       }
     </style>
   </head>
   <body>
     <div id="game"></div>
-
     <script>
-      const gameElement = document.getElementById("game");
+      const game = document.getElementById("game");
+      let currentPlayer = "X";
       let board = Array(9).fill(null);
-      let isMyTurn = false;
-
-      // Create the grid
-      board.forEach((cell, index) => {
-        const cellElement = document.createElement("div");
-        cellElement.classList.add("cell");
-        cellElement.dataset.index = index;
-        cellElement.addEventListener("click", handleCellClick);
-        gameElement.appendChild(cellElement);
-      });
-
-      // Handle cell click events
-      function handleCellClick(event) {
-        if (!isMyTurn) return;
-
-        const cellIndex = event.target.dataset.index;
-        if (board[cellIndex]) return;
-
-        makeMove(cellIndex, "x");
-      }
-
-      // Make a move on the board
-      function makeMove(index, player) {
-        board[index] = player;
-        document
-          .querySelector(`.cell[data-index="${index}"]`)
-          .classList.add(player);
-        isMyTurn = false;
-        sendMessageToParent({ index, player });
-      }
-
-      // Receive moves from parent
-      window.addEventListener("message", (event) => {
-        const data = JSON.parse(event.data);
-        if (data.hasOwnProperty("yourTurn") && data.yourTurn) {
-          isMyTurn = true;
-        } else if (data.index !== undefined && data.player) {
-          makeMove(data.index, data.player);
-        }
-      });
 
       function sendMessageToParent(message) {
         window.parent.postMessage(JSON.stringify(message), "*");
       }
+
+      function handleMessage(event) {
+        const { type, payload } = JSON.parse(event.data);
+        if (type === "move") {
+          board[payload.index] = payload.player;
+          updateBoard();
+          checkWinner();
+        } else if (type === "turn") {
+          currentPlayer = payload;
+        }
+      }
+
+      function makeMove(index) {
+        if (!board[index]) {
+          board[index] = currentPlayer;
+          sendMessageToParent({
+            type: "move",
+            payload: { index, player: currentPlayer },
+          });
+          updateBoard();
+          checkWinner();
+          switchTurn();
+        }
+      }
+
+      function switchTurn() {
+        currentPlayer = currentPlayer === "X" ? "O" : "X";
+        sendMessageToParent({ type: "turn", payload: currentPlayer });
+      }
+
+      function updateBoard() {
+        game.innerHTML = "";
+        board.forEach((cell, index) => {
+          const cellElement = document.createElement("div");
+          cellElement.classList.add("cell");
+          if (cell) {
+            cellElement.classList.add("disabled");
+          }
+          cellElement.textContent = cell;
+          cellElement.addEventListener("click", () => makeMove(index));
+          game.appendChild(cellElement);
+        });
+      }
+
+      function checkWinner() {
+        const winningPatterns = [
+          [0, 1, 2],
+          [3, 4, 5],
+          [6, 7, 8],
+          [0, 3, 6],
+          [1, 4, 7],
+          [2, 5, 8],
+          [0, 4, 8],
+          [2, 4, 6],
+        ];
+
+        for (const pattern of winningPatterns) {
+          const [a, b, c] = pattern;
+          if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+            alert(`${board[a]} wins!`);
+            resetGame();
+            return;
+          }
+        }
+
+        if (board.every((cell) => cell)) {
+          alert(`Draw!`);
+          resetGame();
+        }
+      }
+
+      function resetGame() {
+        board = Array(9).fill(null);
+        updateBoard();
+      }
+
+      window.addEventListener("message", handleMessage);
+
+      updateBoard();
     </script>
   </body>
 </html>

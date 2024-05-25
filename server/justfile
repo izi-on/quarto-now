@@ -37,8 +37,15 @@ run-game-service:
   {{env}} \
   go run main.go
 
+run-generate-service:
+  cd services/generation_service; \
+  source .venv/bin/activate; \
+  {{env}} \
+  uvicorn main:app --host localhost
+
 run: stop-docker run-mongo run-postgres run-redis 
     trap 'kill $(jobs -p)' EXIT; \
     just run-lobby-service & \
     just run-game-service & \
+    just run-generate-service & \
     wait; \

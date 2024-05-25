@@ -1,4 +1,9 @@
-import { BASE_URL, GAME_SERVICE_PORT, GENERATION_SERVICE_PORT, PROTOCOL } from "@/lib/env";
+import {
+  BASE_URL,
+  GAME_SERVICE_PORT,
+  GENERATION_SERVICE_PORT,
+  PROTOCOL,
+} from "@/lib/env";
 import { validateWithZod } from "@/lib/utils";
 import {
   requestCreateRoom,
@@ -8,6 +13,7 @@ import {
   requestGetHtmlCode,
   responseGetHtmlCode,
   responseGetHtmlCodeSchema,
+  responseGenerateHtmlCodeSchema,
 } from "@/types/apiSchemas";
 import { promptInput } from "@/types/gameInputSchema";
 import axios from "axios";
@@ -29,7 +35,7 @@ export async function generateHtmlCode(
 ): Promise<responseGenerateHtmlCode> {
   try {
     const response = await axios.post(
-      `${PROTOCOL}//${BASE_URL}:${GENERATION_SERVICE_PORT}/create-room`,
+      `${PROTOCOL}//${BASE_URL}:${GENERATION_SERVICE_PORT}/generate-game`,
       data,
       {
         headers: {
@@ -39,7 +45,10 @@ export async function generateHtmlCode(
     );
 
     const responseData = response.data;
-    return validateWithZod(responseCreateRoomSchema)(responseData);
+    return validateWithZod(responseGenerateHtmlCodeSchema)(responseData);
+  } catch (error) {
+    console.error("Error creating room:", error);
+    throw error;
   }
 }
 

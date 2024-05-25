@@ -1,4 +1,4 @@
-import { BASE_URL, GAME_SERVICE_PORT, PROTOCOL } from "@/lib/env";
+import { BASE_URL, GAME_SERVICE_PORT, GENERATION_SERVICE_PORT, PROTOCOL } from "@/lib/env";
 import { validateWithZod } from "@/lib/utils";
 import {
   requestCreateRoom,
@@ -27,9 +27,20 @@ import axios from "axios";
 export async function generateHtmlCode(
   data: promptInput,
 ): Promise<responseGenerateHtmlCode> {
-  return fetch("/test.html")
-    .then((val) => val.text())
-    .then((val) => ({ htmlCode: val, name: "tictactoe" }));
+  try {
+    const response = await axios.post(
+      `${PROTOCOL}//${BASE_URL}:${GENERATION_SERVICE_PORT}/create-room`,
+      data,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+    const responseData = response.data;
+    return validateWithZod(responseCreateRoomSchema)(responseData);
+  }
 }
 
 export async function createRoom(

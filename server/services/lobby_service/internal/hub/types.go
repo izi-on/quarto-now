@@ -30,7 +30,8 @@ const (
 )
 
 type PayloadMsg struct {
-	JSONStr  string `json:"jsonStr"`
-	ClientId string `json:"clientId"`
-	Type     WSType `json:"type"`
+	JSONStr   string `json:"jsonStr"`
+	ClientId  string `json:"clientId"`
+	Type      WSType `json:"type"`
+	DoesStart bool   `json:"doesStart"`
 }

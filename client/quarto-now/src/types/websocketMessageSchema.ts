@@ -5,6 +5,7 @@ export const wsMessageSchema = z.object({
   clientId: z.string(),
   type: z.union([z.literal("turnInfo"), z.literal("gameStart")]),
   jsonStr: z.string(),
+  doesStart: z.boolean().optional(),
 });
 
 export type wsMessage = z.infer<typeof wsMessageSchema>;

@@ -5,6 +5,8 @@ CREATE DATABASE quarto;
 CREATE TABLE room (
   id VARCHAR(255) PRIMARY KEY,
   game_id VARCHAR(255) NOT NULL,
+  client_id_of_generator VARCHAR(255) NOT NULL,
+  does_creator_start BOOLEAN NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   has_started BOOLEAN DEFAULT FALSE
 );

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/izi-on/quarto-now/server/services/lobby_service/internal/cleaner"
 	"github.com/izi-on/quarto-now/server/services/lobby_service/internal/db"
 	"github.com/izi-on/quarto-now/server/services/lobby_service/internal/hub"
 	"github.com/izi-on/quarto-now/server/services/lobby_service/internal/pubsub"
@@ -34,6 +35,10 @@ func main() {
 	if err != nil {
 		panic("Could not create the websocket hub")
 	}
+
+	// create db cleaner
+	dbCleaner := cleaner.NewCleaner(dbService)
+	go dbCleaner.Run()
 
 	// run the hub in a separate go routine
 	go hub.Run(context.Background())

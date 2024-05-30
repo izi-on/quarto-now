@@ -15,6 +15,8 @@ export const requestCreateRoomSchema = z.object({
   gameId: z.string(),
   name: z.string(),
   htmlCode: z.string(),
+  clientIdOfCreator: z.string(),
+  doesCreatorStart: z.boolean(),
 });
 
 export type requestCreateRoom = z.infer<typeof requestCreateRoomSchema>;

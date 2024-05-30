@@ -13,13 +13,18 @@ import {
 } from "@/components/ui/form";
 import { Toaster } from "@/components/ui/toaster";
 import { useNavigate } from "react-router-dom";
-import { useCallback, useState } from "react";
+import { useCallback, useContext, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { createRoom, generateHtmlCode } from "@/api/lobby";
+import { ClientContext } from "@/context/clientContextProvider";
 
 export const HomeScreenView = () => {
+  const { clientId } = useContext(ClientContext);
+  if (clientId === undefined) {
+    throw Error("Client Id is undefined!");
+  }
   const form = useForm<promptInput>({
     resolver: zodResolver(promptInputSchema),
     defaultValues: {
@@ -41,6 +46,8 @@ export const HomeScreenView = () => {
           gameId: uuidv4(),
           name: name,
           htmlCode: htmlCode,
+          clientIdOfCreator: clientId.current,
+          doesCreatorStart: data.firstTurn,
         });
       })
       .then(({ roomId }) => {

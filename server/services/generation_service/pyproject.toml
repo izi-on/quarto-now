@@ -15,6 +15,7 @@ pydantic = "^2.7.1"
 uvicorn = "^0.29.0"
 langchain-community = "^0.2.1"
 fastapi-utilities = "^0.2.0"
+langchain-anthropic = "^0.1.13"
 
 
 [build-system]

@@ -13,6 +13,20 @@ func NewService(db *sql.DB) *Service {
 	return &Service{db: db}
 }
 
+func (s *Service) RemoveInactiveRooms() error {
+	query := `
+    DELETE FROM room r
+    WHERE r.id NOT IN 
+    (SELECT room_id FROM client_room_hub);
+  `
+	_, err := s.db.Exec(query)
+	if err != nil {
+		fmt.Printf("error while removing inactive rooms: %s\n", err)
+		return nil
+	}
+	return err
+}
+
 func (s *Service) GetRecipientFromSenderClient(senderId string) (string, error) {
 	var recipientId string
 	query := `
@@ -42,6 +56,18 @@ func (s *Service) GetHubIdForClient(clientId string) (string, error) {
 		}
 	}
 	return hubId, nil
+}
+
+func (s *Service) GetGeneratorClientAndStartStatus(roomId string) (string, bool, error) {
+	var generatorId string
+	var doesStart bool
+	query := "SELECT client_id_of_generator, does_creator_start FROM room WHERE id = $1"
+	err := s.db.QueryRow(query, roomId).Scan(&generatorId, &doesStart)
+	if err != nil {
+		fmt.Printf("Could not get generator client and his start status: %s\n", err)
+		return "", false, err
+	}
+	return generatorId, doesStart, err
 }
 
 func (s *Service) GetClientsForRoom(roomId string) (*[]ClientRoomHub, error) {

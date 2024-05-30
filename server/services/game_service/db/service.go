@@ -22,10 +22,10 @@ func (s *Service) storeHtmlCode(gameId string, name string, htmlCode string) err
 	return nil
 }
 
-func (s *Service) createRoom(gameId string) (string, error) {
+func (s *Service) createRoom(gameId string, creatorId string, creatorStart bool) (string, error) {
 	id := uuid.New()
-	query := "INSERT INTO room(id, game_id) VALUES ($1, $2)"
-	_, err := s.postgresConn.Exec(query, id.String(), gameId)
+	query := "INSERT INTO room(id, game_id, client_id_of_generator, does_creator_start) VALUES ($1, $2, $3, $4)"
+	_, err := s.postgresConn.Exec(query, id.String(), gameId, creatorId, creatorStart)
 	if err != nil {
 		return "", err
 	}
@@ -70,13 +70,13 @@ func (s *Service) GetHTMLCodeFromRoomId(roomId string) (*string, error) {
 	return htmlCode, nil
 }
 
-func (s *Service) CreateRoomAndGetID(gameId string, name string, htmlCode string) (string, error) {
+func (s *Service) CreateRoomAndGetID(gameId string, name string, htmlCode string, creatorId string, creatorStart bool) (string, error) {
 	if err := s.storeHtmlCode(gameId, name, htmlCode); err != nil {
 		fmt.Printf("Could not store HTML code: %s\n", err)
 		return "", err
 	}
 
-	roomId, err := s.createRoom(gameId)
+	roomId, err := s.createRoom(gameId, creatorId, creatorStart)
 	if err != nil {
 		fmt.Printf("Could not create the game room: %s", err)
 		return "", err

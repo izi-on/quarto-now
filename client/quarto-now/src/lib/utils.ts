@@ -1,6 +1,5 @@
 import { wsMessage } from "@/types/websocketMessageSchema";
 import { type ClassValue, clsx } from "clsx";
-import { Socket } from "socket.io-client";
 import { twMerge } from "tailwind-merge";
 import { ZodSchema } from "zod";
 
@@ -18,7 +17,8 @@ export const sendMessageToIframe = (
   iFrameRef: React.RefObject<HTMLIFrameElement>,
 ) => {
   return (msg: wsMessage) => {
-    iFrameRef.current?.contentWindow?.postMessage(msg.jsonStr, "*");
+    if (iFrameRef.current?.contentWindow === null) throw Error("no iframe!");
+    iFrameRef.current?.contentWindow.postMessage(msg.jsonStr, "*");
   };
 };
 

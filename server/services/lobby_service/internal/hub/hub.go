@@ -88,11 +88,23 @@ func (h *Hub) SignalGameStart(roomId string) error {
 		fmt.Printf("Could not get clients for room id: %s: %s", roomId, err)
 		return err
 	}
+	generatorId, doesStart, err := h.db.GetGeneratorClientAndStartStatus(roomId)
+	if err != nil {
+		fmt.Printf("Could not get generator and his start status for room %s, the error is: %s\n", roomId, err)
+		return err
+	}
 	for _, client := range *clients {
+		setStart := true
+		if client.ID == generatorId && doesStart {
+			setStart = false // this is the ID of the sender, so basically sending a false signal for start
+		} else if client.ID != generatorId && !doesStart {
+			setStart = false
+		}
 		signalMsg := &PayloadMsg{
-			ClientId: client.ID,
-			Type:     GameStart,
-			JSONStr:  "",
+			ClientId:  client.ID,
+			Type:      GameStart,
+			JSONStr:   "",
+			DoesStart: setStart,
 		}
 		jsonMsg, err := json.Marshal(signalMsg)
 		if err != nil {
@@ -164,7 +176,7 @@ func (h *Hub) Run(ctx context.Context) {
 			if isGameStart {
 				fmt.Printf("starting game on room: %s\n", client.roomId)
 				go func() {
-					err = h.SignalGameStart(client.roomId)
+					err = h.SignalGameStart(client.roomId) // signal the start of the game
 					if err != nil {
 						panic("unable to start game despite clients being there!")
 					}

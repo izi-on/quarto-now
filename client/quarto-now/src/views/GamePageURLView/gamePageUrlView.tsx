@@ -48,13 +48,41 @@ export const GamePageUrlView = () => {
 
   const handlerWebsocketMsg = useCallback((data: string) => {
     validateWithZod(wsMessageSchema)(JSON.parse(data))
-      .then(({ clientId, type, jsonStr }) => {
+      .then(({ clientId, type, jsonStr, doesStart }) => {
         switch (type) {
           case "turnInfo":
-            sendMessageToIframe(iframeRef)({ clientId, type, jsonStr });
+            console.log({
+              clientId,
+              type,
+              jsonStr,
+              doesStart,
+            });
+            sendMessageToIframe(iframeRef)({
+              clientId,
+              type,
+              jsonStr,
+              doesStart,
+            });
             break;
           case "gameStart":
             setSecondPlayerConnected(true);
+            if (doesStart) {
+              // console.log({
+              //   clientId,
+              //   type,
+              //   jsonStr: '{"type":"turn","move":"{}"}',
+              //   doesStart,
+              // });
+              //
+              setTimeout(() => {
+                sendMessageToIframe(iframeRef)({
+                  clientId,
+                  type,
+                  jsonStr: '{"type":"turn","move":"{}"}',
+                  doesStart,
+                });
+              }, 200);
+            }
             break;
         }
       })
@@ -93,7 +121,7 @@ export const GamePageUrlView = () => {
 
     const handleMsg = (event: MessageEvent) => {
       const data = event.data;
-      console.log("Via WS:" + data);
+      console.log(data);
       handlerWebsocketMsg(data);
     };
     conn.onmessage = handleMsg;
@@ -145,7 +173,7 @@ export const GamePageUrlView = () => {
           <iframe
             ref={iframeRef}
             src={"http://localhost:5173"}
-            sandbox="allow-scripts allow-same-origin"
+            sandbox="allow-scripts allow-same-origin allow-modals"
             srcDoc={`${htmlString}`}
             className="bg-green-500"
             style={{ width: "100%", height: "500px", border: "1px solid #ccc" }}

@@ -13,7 +13,7 @@ func (s *Service) HandleRoomCreation(c *gin.Context) {
 	if err := c.ShouldBindBodyWithJSON(&request); err != nil {
 		c.String(http.StatusBadRequest, fmt.Sprintf("Invalid JSON format: %s", err))
 	}
-	roomId, err := s.CreateRoomAndGetID(request.GameID, request.Name, request.HTMLCode)
+	roomId, err := s.CreateRoomAndGetID(request.GameID, request.Name, request.HTMLCode, request.ClientIDOfGenerator, request.DoesCreatorStart)
 	fmt.Println("room id is:", roomId)
 	if err != nil {
 		fmt.Println(err)
